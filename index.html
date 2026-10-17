@@ -3,77 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f1ea">
   <title>会話練習</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #f4f1ea;          /* 生成り色 */
+      --card: #fffdf8;
+      --ink: #3b403c;
+      --muted: #7d837d;
+      --line: #e4dfd3;
+      --accent: #6b8f7b;      /* セージグリーン */
+      --accent-dark: #557463;
+      --accent-soft: #e8efe9;
+      --warm-soft: #f6ede0;
+      --stop: #c4806f;        /* くすんだテラコッタ */
+      --ring: rgba(107, 143, 123, .22);
+    }
     * { box-sizing: border-box; }
-    body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #eef3f8; margin: 0; padding: 16px; color: #2b2f36; }
-    .card { max-width: 480px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; padding: 24px 16px 40px;
+      background: var(--bg); color: var(--ink);
+      font-family: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Hiragino Sans', sans-serif;
+      line-height: 1.6;
+    }
     .hidden { display: none !important; }
-    h1 { font-size: 1.3rem; text-align: center; margin: 4px 0 12px; }
-    label { display: block; margin-top: 14px; font-weight: bold; font-size: .95rem; }
-    rt { font-size: .6em; font-weight: normal; }
-    input, select { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #c5ccd6; border-radius: 8px; font-size: 1rem; background: #fff; }
-    .hint { font-size: .8rem; color: #6b7480; margin-top: 4px; }
-    .notes { background: #f5f8fc; border-radius: 8px; padding: 10px 12px; font-size: .85rem; line-height: 1.7; margin-top: 16px; }
-    button { width: 100%; padding: 15px; margin-top: 14px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: bold; cursor: pointer; }
-    button:disabled { opacity: .45; cursor: default; }
+    rt { font-size: .55em; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+    button rt { color: inherit; opacity: .85; }
+    .card {
+      max-width: 460px; margin: 0 auto; background: var(--card);
+      border: 1px solid var(--line); border-radius: 24px;
+      padding: 28px 22px; box-shadow: 0 6px 24px rgba(80, 70, 50, .06);
+    }
+
+    /* ---- ヘッダー ---- */
+    .hero { text-align: center; margin-bottom: 22px; }
+    .logo {
+      width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 20px;
+      background: var(--accent-soft); display: grid; place-items: center;
+    }
+    .hero h1 { font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: .08em; }
+    .hero p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+
+    /* ---- フォーム ---- */
+    .group { margin-top: 18px; }
+    .group-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .8rem; color: var(--accent-dark); font-weight: 700; letter-spacing: .1em;
+      margin-bottom: 4px;
+    }
+    .group-title::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+    label { display: block; margin-top: 14px; font-size: .92rem; font-weight: 500; }
+    input, select {
+      width: 100%; margin-top: 6px; padding: 13px 14px;
+      font: inherit; font-size: 1rem; color: var(--ink);
+      background: #fff; border: 1.5px solid var(--line); border-radius: 14px;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    input::placeholder { color: #b7b9b2; }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring); }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: ''; position: absolute; right: 16px; top: 50%; margin-top: -1px;
+      width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+      transform: translateY(-50%) rotate(45deg); pointer-events: none;
+    }
+    .select-wrap select { padding-right: 40px; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 52px; }
+    .pw-toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%); margin-top: 3px;
+      width: 40px; height: 40px; border: none; background: none; padding: 0; color: var(--muted); cursor: pointer;
+      display: grid; place-items: center; border-radius: 10px;
+    }
+    .field-error { color: var(--stop); font-size: .82rem; margin-top: 6px; }
+
+    .notes {
+      margin-top: 22px; padding: 14px 16px; border-radius: 16px;
+      background: var(--warm-soft); font-size: .85rem; line-height: 1.75;
+    }
+    .notes ul { margin: 0; padding-left: 1.1em; }
+
+    /* ---- ボタン ---- */
+    button {
+      width: 100%; margin-top: 14px; padding: 15px; border: none; border-radius: 999px;
+      font: inherit; font-size: 1.05rem; font-weight: 700; letter-spacing: .05em; cursor: pointer;
+      transition: transform .1s, background .2s, opacity .2s;
+    }
+    button:disabled { opacity: .5; cursor: default; }
     button:active:not(:disabled) { transform: scale(.98); }
-    .btn-main { background: #2f7de1; color: #fff; }
-    .btn-stop { background: #e0473b; color: #fff; }
-    .btn-sub { background: #e7ebf0; color: #2b2f36; }
-    .scene-label { text-align: center; font-weight: bold; color: #5a6470; font-size: .9rem; }
-    .illust { width: 100%; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+    .btn-main { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(85, 116, 99, .25); }
+    .btn-main:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn-stop { background: var(--stop); color: #fff; }
+    .btn-sub { background: var(--accent-soft); color: var(--accent-dark); }
+    #btn-start { margin-top: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    /* ---- 会話画面 ---- */
+    .scene-label { text-align: center; font-weight: 700; color: var(--accent-dark); font-size: .95rem; }
+    .illust { border-radius: 18px; overflow: hidden; margin: 12px 0; }
     .illust svg { display: block; width: 100%; height: auto; }
     .progress { display: flex; justify-content: center; gap: 8px; margin: 6px 0 10px; }
-    .progress span { width: 12px; height: 12px; border-radius: 50%; background: #d3d9e1; }
-    .progress span.done { background: #2f7de1; }
-    .status { text-align: center; min-height: 3em; font-size: 1rem; line-height: 1.5; margin: 6px 0; }
-    .rec { display: flex; align-items: center; justify-content: center; gap: 8px; color: #e0473b; font-weight: bold; }
-    .rec .dot { width: 12px; height: 12px; border-radius: 50%; background: #e0473b; animation: blink 1s infinite; }
+    .progress span { width: 11px; height: 11px; border-radius: 50%; background: var(--line); transition: background .3s; }
+    .progress span.done { background: var(--accent); }
+    .status { text-align: center; min-height: 3.2em; font-size: 1rem; margin: 6px 0; }
+    .rec { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--stop); font-weight: 700; }
+    .rec .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--stop); animation: blink 1s infinite; }
     @keyframes blink { 50% { opacity: .2; } }
-    .loader { border: 4px solid #e3e8ee; border-top-color: #2f7de1; border-radius: 50%; width: 34px; height: 34px; animation: spin 1s linear infinite; margin: 10px auto; }
+    .loader {
+      width: 34px; height: 34px; margin: 10px auto; border-radius: 50%;
+      border: 4px solid var(--accent-soft); border-top-color: var(--accent); animation: spin 1s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .center { text-align: center; line-height: 1.8; }
+    .center { text-align: center; }
+    .center h1 { font-size: 1.35rem; margin: 6px 0 8px; }
+    .hint { font-size: .82rem; color: var(--muted); }
+    .done-icon {
+      width: 72px; height: 72px; margin: 0 auto 6px; border-radius: 50%;
+      background: var(--accent-soft); display: grid; place-items: center;
+    }
   </style>
 </head>
 <body>
 
 <!-- ===== 1. 設定画面 ===== -->
 <section class="card screen" id="screen-setup">
-  <h1><ruby>会話<rt>かいわ</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby></h1>
-
-  <label for="class-name">クラス</label>
-  <input type="text" id="class-name" placeholder="例：A1">
-
-  <label for="student-name"><ruby>名前<rt>なまえ</rt></ruby>（カタカナ）</label>
-  <input type="text" id="student-name" placeholder="例：グエン　ヴァン　アン">
-
-  <label for="email"><ruby>結果<rt>けっか</rt></ruby>を<ruby>受<rt>う</rt></ruby>け<ruby>取<rt>と</rt></ruby>るメールアドレス</label>
-  <input type="email" id="email" placeholder="example@gmail.com" autocomplete="email">
-
-  <label for="level">いまの<ruby>日本語<rt>にほんご</rt></ruby>のレベル</label>
-  <select id="level">
-    <option value="初級・初中級">初級・初中級（N5〜N4）</option>
-    <option value="中級" selected>中級（N3）</option>
-    <option value="中上級">中上級（N2）</option>
-    <option value="上級">上級（N1）</option>
-  </select>
-
-  <label for="scene"><ruby>会話<rt>かいわ</rt></ruby>の<ruby>場面<rt>ばめん</rt></ruby></label>
-  <select id="scene">
-    <option value="undergrad">面接（学部）</option>
-    <option value="grad">面接（大学院）</option>
-    <option value="friend">友達（敬語を使わない会話）</option>
-  </select>
-
-  <div class="notes">
-    ・<ruby>静<rt>しず</rt></ruby>かな<ruby>場所<rt>ばしょ</rt></ruby>で<ruby>練習<rt>れんしゅう</rt></ruby>しましょう。<br>
-    ・iPhoneは、マナーモード（<ruby>消音<rt>しょうおん</rt></ruby>）をオフにしてください。<br>
-    ・LINEの<ruby>中<rt>なか</rt></ruby>で<ruby>開<rt>ひら</rt></ruby>かないで、SafariかChromeで<ruby>開<rt>ひら</rt></ruby>いてください。<br>
-    ・マイクの<ruby>許可<rt>きょか</rt></ruby>を<ruby>聞<rt>き</rt></ruby>かれたら、「<ruby>許可<rt>きょか</rt></ruby>」を<ruby>押<rt>お</rt></ruby>してください。
+  <div class="hero">
+    <div class="logo" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#557463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+        <path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v2.5L16 18h-3"/>
+      </svg>
+    </div>
+    <h1><ruby>会話<rt>かいわ</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby></h1>
+    <p>AIの<ruby>面接官<rt>めんせつかん</rt></ruby>と<ruby>話<rt>はな</rt></ruby>してみよう</p>
   </div>
 
-  <button class="btn-main" id="btn-start"><ruby>会話<rt>かいわ</rt></ruby>を<ruby>始<rt>はじ</rt></ruby>める</button>
+  <div class="group">
+    <div class="group-title">あなたについて</div>
+
+    <label for="class-name">クラス</label>
+    <input type="text" id="class-name" placeholder="例：A1" autocomplete="off">
+
+    <label for="student-name"><ruby>名前<rt>なまえ</rt></ruby>（カタカナ）</label>
+    <input type="text" id="student-name" placeholder="例：スズキ　サトシ" autocomplete="off">
+
+    <label for="password">パスワード</label>
+    <div class="pw-wrap">
+      <input type="password" id="password" placeholder="先生に聞いてください" autocomplete="off">
+      <button type="button" class="pw-toggle" id="pw-toggle" aria-label="パスワードを表示">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div class="field-error hidden" id="pw-error">パスワードがちがいます。<ruby>先生<rt>せんせい</rt></ruby>に<ruby>聞<rt>き</rt></ruby>いてください。</div>
+  </div>
+
+  <div class="group">
+    <div class="group-title"><ruby>練習<rt>れんしゅう</rt></ruby>の<ruby>設定<rt>せってい</rt></ruby></div>
+
+    <label for="level">いまの<ruby>日本語<rt>にほんご</rt></ruby>のレベル</label>
+    <div class="select-wrap">
+      <select id="level">
+        <option value="初級・初中級">初級・初中級（N5〜N4）</option>
+        <option value="中級" selected>中級（N3）</option>
+        <option value="中上級">中上級（N2）</option>
+        <option value="上級">上級（N1）</option>
+      </select>
+    </div>
+
+    <label for="scene"><ruby>会話<rt>かいわ</rt></ruby>の<ruby>場面<rt>ばめん</rt></ruby></label>
+    <div class="select-wrap">
+      <select id="scene">
+        <option value="undergrad">面接（学部）</option>
+        <option value="grad">面接（大学院）</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="notes">
+    <ul>
+      <li><ruby>静<rt>しず</rt></ruby>かな<ruby>場所<rt>ばしょ</rt></ruby>で<ruby>練習<rt>れんしゅう</rt></ruby>しましょう。イヤホンがあると、もっといいです。</li>
+      <li>iPhoneは、マナーモード（<ruby>消音<rt>しょうおん</rt></ruby>）をオフにしてください。</li>
+      <li>LINEの<ruby>中<rt>なか</rt></ruby>ではなく、SafariかChromeで<ruby>開<rt>ひら</rt></ruby>いてください。</li>
+      <li>マイクの<ruby>許可<rt>きょか</rt></ruby>を<ruby>聞<rt>き</rt></ruby>かれたら、「<ruby>許可<rt>きょか</rt></ruby>」を<ruby>押<rt>お</rt></ruby>してください。</li>
+    </ul>
+  </div>
+
+  <button class="btn-main" id="btn-start">
+    <span><ruby>会話<rt>かいわ</rt></ruby>を<ruby>始<rt>はじ</rt></ruby>める</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
 </section>
 
 <!-- ===== 2. 会話画面（質問の文字は出しません） ===== -->
@@ -100,8 +222,13 @@
 </section>
 
 <section class="card screen hidden center" id="screen-done">
+  <div class="done-icon" aria-hidden="true">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#557463" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+  </div>
   <h1 id="done-title"></h1>
   <p id="done-msg"></p>
+  <button class="btn-main hidden" id="btn-download"><ruby>結果<rt>けっか</rt></ruby>（PDF）をダウンロード</button>
+  <p class="hint hidden" id="download-hint">iPhoneは「ファイル」アプリに<ruby>保存<rt>ほぞん</rt></ruby>されます。</p>
   <button class="btn-main hidden" id="btn-retry-finish">もう<ruby>一度<rt>いちど</rt></ruby><ruby>送<rt>おく</rt></ruby>る</button>
   <button class="btn-sub" id="btn-again">もう<ruby>一度<rt>いちど</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby>する</button>
 </section>
@@ -109,68 +236,51 @@
 <script>
 // ============ 設定 ============
 // ★ GASを「ウェブアプリ」でデプロイしたときのURL（…/exec で終わるもの）を、ここに貼ってください
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwQguvZnwPoDiJg9Xk7m-84BHUnBhDhCuWyXH48ej-kiL4WN4zomHPF_unlAJCliq2zyA/exec';
+const GAS_URL = 'ここにURLを貼る';
 
-const MAX_TURNS = 6;     // 学生が答える回数（サーバー側の CONFIG.MAX_TURNS と同じにする）
+const MAX_TURNS = 6;      // 学生が答える回数（サーバー側の CONFIG.MAX_TURNS と同じにする）
 const MAX_REC_SEC = 60;   // 1回の録音の最大秒数
 
 // ============ イラスト（シルエット） ============
 const ILLUST = {
   undergrad: `
 <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="320" height="200" fill="#e6edf5"/>
-  <rect y="150" width="320" height="50" fill="#d2dbe5"/>
-  <rect x="232" y="24" width="62" height="74" fill="#fff" stroke="#c0cad6" stroke-width="4"/>
-  <line x1="263" y1="24" x2="263" y2="98" stroke="#c0cad6" stroke-width="4"/>
-  <circle cx="160" cy="60" r="25" fill="#3a4757"/>
-  <path d="M106 140 Q108 94 160 90 Q212 94 214 140 Z" fill="#3a4757"/>
-  <path d="M150 93 L160 122 L170 93 Z" fill="#fff"/>
-  <path d="M157 97 L160 120 L163 97 Z" fill="#7a2e3a"/>
-  <rect x="55" y="128" width="210" height="16" rx="3" fill="#8a6a4f"/>
-  <rect x="66" y="144" width="188" height="44" fill="#a3826a"/>
-  <rect x="118" y="120" width="40" height="9" fill="#fff" transform="rotate(-4 138 124)"/>
-  <rect x="176" y="121" width="26" height="8" fill="#5d6b7a"/>
+  <rect width="320" height="200" fill="#ebf0ea"/>
+  <rect y="150" width="320" height="50" fill="#dfe6dd"/>
+  <rect x="232" y="24" width="62" height="74" rx="4" fill="#fbfaf5" stroke="#cdd6cc" stroke-width="4"/>
+  <line x1="263" y1="24" x2="263" y2="98" stroke="#cdd6cc" stroke-width="4"/>
+  <circle cx="160" cy="60" r="25" fill="#4a5650"/>
+  <path d="M106 140 Q108 94 160 90 Q212 94 214 140 Z" fill="#4a5650"/>
+  <path d="M150 93 L160 122 L170 93 Z" fill="#fbfaf5"/>
+  <path d="M157 97 L160 120 L163 97 Z" fill="#a8695c"/>
+  <rect x="55" y="128" width="210" height="16" rx="3" fill="#a08670"/>
+  <rect x="66" y="144" width="188" height="44" fill="#b59c86"/>
+  <rect x="118" y="120" width="40" height="9" fill="#fbfaf5" transform="rotate(-4 138 124)"/>
+  <rect x="176" y="121" width="26" height="8" fill="#6b8f7b"/>
 </svg>`,
   grad: `
 <svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="320" height="200" fill="#ece8e1"/>
-  <rect y="150" width="320" height="50" fill="#dcd5ca"/>
-  <rect x="14" y="22" width="70" height="110" fill="#8d6e55"/>
-  <rect x="20" y="30" width="58" height="26" fill="#6b5241"/>
-  <rect x="24" y="34" width="8" height="22" fill="#c94f4f"/><rect x="34" y="36" width="7" height="20" fill="#4f7cc9"/><rect x="43" y="33" width="9" height="23" fill="#e0b84a"/><rect x="54" y="37" width="7" height="19" fill="#4fa37a"/>
-  <rect x="20" y="64" width="58" height="26" fill="#6b5241"/>
-  <rect x="24" y="68" width="9" height="22" fill="#4f7cc9"/><rect x="35" y="70" width="7" height="20" fill="#e0b84a"/><rect x="44" y="67" width="8" height="23" fill="#c94f4f"/>
-  <circle cx="130" cy="64" r="22" fill="#3d3a38"/>
-  <path d="M84 140 Q86 98 130 94 Q174 98 176 140 Z" fill="#3d3a38"/>
-  <circle cx="215" cy="62" r="23" fill="#4a4643"/>
-  <path d="M168 140 Q170 96 215 92 Q260 96 262 140 Z" fill="#4a4643"/>
-  <rect x="200" y="58" width="12" height="8" rx="3" fill="none" stroke="#cfcac4" stroke-width="2"/>
-  <rect x="218" y="58" width="12" height="8" rx="3" fill="none" stroke="#cfcac4" stroke-width="2"/>
-  <rect x="70" y="128" width="210" height="16" rx="3" fill="#6f5745"/>
-  <rect x="80" y="144" width="190" height="44" fill="#86695a"/>
-  <rect x="150" y="120" width="44" height="9" fill="#fff" transform="rotate(3 172 124)"/>
-</svg>`,
-  friend: `
-<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="320" height="200" fill="#fdf1e3"/>
-  <rect y="150" width="320" height="50" fill="#f2dcc2"/>
-  <circle cx="60" cy="40" r="16" fill="#ffd36b"/>
-  <rect x="236" y="20" width="56" height="40" rx="6" fill="#fff" stroke="#e7c9a6" stroke-width="3"/>
-  <circle cx="160" cy="64" r="25" fill="#e07a3f"/>
-  <path d="M136 60 Q140 30 168 38 Q186 44 184 60 Q170 46 136 60 Z" fill="#b85a26"/>
-  <path d="M108 142 Q110 98 160 94 Q210 98 212 142 Z" fill="#e07a3f"/>
-  <path d="M146 96 Q160 110 174 96" fill="none" stroke="#fdf1e3" stroke-width="4"/>
-  <ellipse cx="160" cy="140" rx="110" ry="14" fill="#c99d6e"/>
-  <rect x="152" y="152" width="16" height="40" fill="#b88a5c"/>
-  <rect x="110" y="118" width="18" height="20" rx="3" fill="#fff"/>
-  <path d="M128 123 q8 0 8 7 q0 7 -8 7" fill="none" stroke="#fff" stroke-width="3"/>
-  <rect x="192" y="118" width="18" height="20" rx="3" fill="#fff"/>
-  <path d="M192 123 q-8 0 -8 7 q0 7 8 7" fill="none" stroke="#fff" stroke-width="3"/>
+  <rect width="320" height="200" fill="#f1ece2"/>
+  <rect y="150" width="320" height="50" fill="#e5dece"/>
+  <rect x="14" y="22" width="70" height="110" rx="3" fill="#a08670"/>
+  <rect x="20" y="30" width="58" height="26" fill="#86705c"/>
+  <rect x="24" y="34" width="8" height="22" fill="#c4806f"/><rect x="34" y="36" width="7" height="20" fill="#7d9aa8"/><rect x="43" y="33" width="9" height="23" fill="#d9b56f"/><rect x="54" y="37" width="7" height="19" fill="#6b8f7b"/>
+  <rect x="20" y="64" width="58" height="26" fill="#86705c"/>
+  <rect x="24" y="68" width="9" height="22" fill="#7d9aa8"/><rect x="35" y="70" width="7" height="20" fill="#d9b56f"/><rect x="44" y="67" width="8" height="23" fill="#c4806f"/>
+  <circle cx="130" cy="64" r="22" fill="#4d4a46"/>
+  <path d="M84 140 Q86 98 130 94 Q174 98 176 140 Z" fill="#4d4a46"/>
+  <circle cx="215" cy="62" r="23" fill="#5a5651"/>
+  <path d="M168 140 Q170 96 215 92 Q260 96 262 140 Z" fill="#5a5651"/>
+  <rect x="200" y="58" width="12" height="8" rx="3" fill="none" stroke="#d8d2c8" stroke-width="2"/>
+  <rect x="218" y="58" width="12" height="8" rx="3" fill="none" stroke="#d8d2c8" stroke-width="2"/>
+  <rect x="70" y="128" width="210" height="16" rx="3" fill="#8f7663"/>
+  <rect x="80" y="144" width="190" height="44" fill="#a68c78"/>
+  <rect x="150" y="120" width="44" height="9" fill="#fbfaf5" transform="rotate(3 172 124)"/>
 </svg>`,
 };
 
 // ============ 状態 ============
-const state = { info: null, history: [], answers: 0, repeatUsed: false, finished: false, lastWav: null };
+const state = { info: null, history: [], answers: 0, repeatUsed: false, finished: false, lastWav: null, result: null, downloaded: false };
 let audioCtx = null;   // 再生と録音の両方に使う
 let aiBuffer = null;   // いまの質問の音声
 let rec = null;        // 録音中のデータ
@@ -200,54 +310,81 @@ function updateProgress() {
   $('progress').innerHTML = Array.from({ length: MAX_TURNS }, (_, i) =>
     `<span class="${i < state.answers ? 'done' : ''}"></span>`).join('');
 }
+
 // GASのサーバーを呼ぶ（text/plain で送ると、CORSの事前確認なしで送れます）
-async function run(fn, arg) {
-  const action = { apiTurn: 'turn', finishAndSendResult: 'finish' }[fn];
+async function call(action, data, password) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: action, data: arg }),
+    body: JSON.stringify({ action: action, password: password, data: data }),
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const json = await res.json();
   if (!json.ok) throw new Error(json.error || 'サーバーエラー');
   return json.result;
 }
+function run(action, data) { return call(action, data, state.info.password); }
+
 function setAudioSession(type) {
   // iPhone（iOS 17以降）：消音モードでも音が出るようにする
   try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) {}
 }
 function warnLeave(e) { e.preventDefault(); e.returnValue = ''; }
 
+// クラスと名前は、次回のために覚えておく（パスワードは覚えません）
+try {
+  $('class-name').value = localStorage.getItem('kaiwa-class') || '';
+  $('student-name').value = localStorage.getItem('kaiwa-name') || '';
+} catch (e) {}
+
+$('pw-toggle').addEventListener('click', () => {
+  const i = $('password');
+  i.type = i.type === 'password' ? 'text' : 'password';
+});
+$('password').addEventListener('input', () => $('pw-error').classList.add('hidden'));
+
 // ============ 1. 会話を始める ============
 $('btn-start').addEventListener('click', async () => {
   const info = {
     className: $('class-name').value.trim(),
     studentName: $('student-name').value.trim(),
-    email: $('email').value.trim(),
+    password: $('password').value.trim(),
     level: $('level').value,
     sceneId: $('scene').value,
   };
   if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(GAS_URL)) {
     alert('index.html の GAS_URL が設定されていません。'); return;
   }
-  if (!info.className || !info.studentName || !info.email) {
-    alert('クラス、名前、メールアドレスを全部書いてください。'); return;
+  if (!info.className || !info.studentName || !info.password) {
+    alert('クラス、名前、パスワードを全部書いてください。'); return;
   }
-  if (!/^[\u30A0-\u30FF\s\u3000]+$/.test(info.studentName)) {
+  if (!/^[゠-ヿ\s　]+$/.test(info.studentName)) {
     alert('名前は、全角のカタカナで書いてください。'); return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) {
-    alert('メールアドレスが正しくありません。もう一度確認してください。'); return;
   }
 
   $('btn-start').disabled = true;
+
+  // ボタンを押したときに音を使えるようにする（iPhone対策）
+  const AC = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AC();
+  audioCtx.resume();
+
+  // パスワードを確かめる
   try {
-    // ボタンを押したときに音を使えるようにする（iPhone対策）
-    const AC = window.AudioContext || window.webkitAudioContext;
-    audioCtx = new AC();
-    audioCtx.resume();
-    // マイクの許可を先にもらう
+    await call('check', null, info.password);
+  } catch (e) {
+    $('btn-start').disabled = false;
+    if (e.message === 'PASSWORD') {
+      $('pw-error').classList.remove('hidden');
+      $('password').focus();
+    } else {
+      alert('サーバーにつながりませんでした。もう一度押してください。');
+    }
+    return;
+  }
+
+  // マイクの許可を先にもらう
+  try {
     setAudioSession('play-and-record');
     const s = await navigator.mediaDevices.getUserMedia({ audio: true });
     s.getTracks().forEach(t => t.stop());
@@ -258,10 +395,17 @@ $('btn-start').addEventListener('click', async () => {
     return;
   }
 
+  try {
+    localStorage.setItem('kaiwa-class', info.className);
+    localStorage.setItem('kaiwa-name', info.studentName);
+  } catch (e) {}
+
   state.info = info;
   state.history = [];
   state.answers = 0;
   state.finished = false;
+  state.result = null;
+  state.downloaded = false;
   aiBuffer = null;
   $('scene-label').textContent = $('scene').selectedOptions[0].textContent;
   $('illust').innerHTML = ILLUST[info.sceneId];
@@ -281,14 +425,16 @@ async function sendTurn(wav) {
 
   let res;
   try {
-    res = await run('apiTurn', {
+    res = await run('turn', {
       sceneId: state.info.sceneId, level: state.info.level, history: state.history, audio: wav,
     });
   } catch (err) {
     console.error(err);
     setLoading(false);
-    setStatus('通信がうまくいきませんでした。「もう一度送る」を押してください。');
-    setButtons({ resend: true });
+    setStatus(err.message === 'PASSWORD'
+      ? 'パスワードが変わりました。先生に聞いてください。'
+      : '通信がうまくいきませんでした。「もう一度送る」を押してください。');
+    setButtons({ resend: err.message !== 'PASSWORD' });
     return;
   }
   setLoading(false);
@@ -457,41 +603,71 @@ function encodeWav(chunks, inRate) {
   return { base64: btoa(bin), seconds: outLen / outRate };
 }
 
-function decodeMp3(b64) {
+function base64ToBytes(b64) {
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function decodeMp3(b64) {
+  const bytes = base64ToBytes(b64);
   return new Promise((ok, ng) => {
     const p = audioCtx.decodeAudioData(bytes.buffer, ok, ng);
     if (p && p.catch) p.catch(ng);
   });
 }
 
-// ============ 5. 終わり：結果を送る ============
+// ============ 5. 終わり：結果を作って、ダウンロードできるようにする ============
 function finish() {
-  window.removeEventListener('beforeunload', warnLeave);
   showScreen('screen-finish');
-  run('finishAndSendResult', Object.assign({}, state.info, { history: state.history }))
+  const data = {
+    className: state.info.className, studentName: state.info.studentName,
+    level: state.info.level, sceneId: state.info.sceneId, history: state.history,
+  };
+  run('finish', data)
     .then(r => {
-      $('done-title').textContent = '結果を送りました';
-      $('done-msg').textContent = r.mailSent
-        ? 'メールを確認してください。'
-        : '結果は先生に送りました。メールが届かないときは、先生に聞いてください。';
+      state.result = r;
+      $('done-title').textContent = 'お疲れ様でした';
+      $('done-msg').innerHTML = '<ruby>結果<rt>けっか</rt></ruby>ができました。<br>ダウンロードしてから、<ruby>画面<rt>がめん</rt></ruby>を<ruby>閉<rt>と</rt></ruby>じてください。';
+      $('btn-download').classList.remove('hidden');
+      $('download-hint').classList.remove('hidden');
       $('btn-retry-finish').classList.add('hidden');
       showScreen('screen-done');
     })
     .catch(e => {
       console.error(e);
-      $('done-title').textContent = '送ることができませんでした';
+      $('done-title').textContent = '結果を作れませんでした';
       $('done-msg').textContent = '「もう一度送る」を押してください。だめなときは、先生に言ってください。';
+      $('btn-download').classList.add('hidden');
+      $('download-hint').classList.add('hidden');
       $('btn-retry-finish').classList.remove('hidden');
       showScreen('screen-done');
     });
 }
 $('btn-retry-finish').addEventListener('click', finish);
 
+$('btn-download').addEventListener('click', () => {
+  if (!state.result) return;
+  const blob = new Blob([base64ToBytes(state.result.pdfBase64)], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = state.result.fileName + '.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  state.downloaded = true;
+  window.removeEventListener('beforeunload', warnLeave);
+});
+
 $('btn-again').addEventListener('click', () => {
+  if (state.result && !state.downloaded &&
+      !confirm('まだ結果をダウンロードしていません。もう一度練習しますか？')) return;
+  window.removeEventListener('beforeunload', warnLeave);
   $('btn-start').disabled = false;
+  $('password').value = state.info ? state.info.password : '';
   showScreen('screen-setup');
 });
 </script>
