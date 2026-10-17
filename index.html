@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会話練習</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: #eef3f8; margin: 0; padding: 16px; color: #2b2f36; }
+    .card { max-width: 480px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .hidden { display: none !important; }
+    h1 { font-size: 1.3rem; text-align: center; margin: 4px 0 12px; }
+    label { display: block; margin-top: 14px; font-weight: bold; font-size: .95rem; }
+    rt { font-size: .6em; font-weight: normal; }
+    input, select { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #c5ccd6; border-radius: 8px; font-size: 1rem; background: #fff; }
+    .hint { font-size: .8rem; color: #6b7480; margin-top: 4px; }
+    .notes { background: #f5f8fc; border-radius: 8px; padding: 10px 12px; font-size: .85rem; line-height: 1.7; margin-top: 16px; }
+    button { width: 100%; padding: 15px; margin-top: 14px; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: bold; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: default; }
+    button:active:not(:disabled) { transform: scale(.98); }
+    .btn-main { background: #2f7de1; color: #fff; }
+    .btn-stop { background: #e0473b; color: #fff; }
+    .btn-sub { background: #e7ebf0; color: #2b2f36; }
+    .scene-label { text-align: center; font-weight: bold; color: #5a6470; font-size: .9rem; }
+    .illust { width: 100%; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+    .illust svg { display: block; width: 100%; height: auto; }
+    .progress { display: flex; justify-content: center; gap: 8px; margin: 6px 0 10px; }
+    .progress span { width: 12px; height: 12px; border-radius: 50%; background: #d3d9e1; }
+    .progress span.done { background: #2f7de1; }
+    .status { text-align: center; min-height: 3em; font-size: 1rem; line-height: 1.5; margin: 6px 0; }
+    .rec { display: flex; align-items: center; justify-content: center; gap: 8px; color: #e0473b; font-weight: bold; }
+    .rec .dot { width: 12px; height: 12px; border-radius: 50%; background: #e0473b; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: .2; } }
+    .loader { border: 4px solid #e3e8ee; border-top-color: #2f7de1; border-radius: 50%; width: 34px; height: 34px; animation: spin 1s linear infinite; margin: 10px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .center { text-align: center; line-height: 1.8; }
+  </style>
+</head>
+<body>
+
+<!-- ===== 1. 設定画面 ===== -->
+<section class="card screen" id="screen-setup">
+  <h1><ruby>会話<rt>かいわ</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby></h1>
+
+  <label for="class-name">クラス</label>
+  <input type="text" id="class-name" placeholder="例：A1">
+
+  <label for="student-name"><ruby>名前<rt>なまえ</rt></ruby>（カタカナ）</label>
+  <input type="text" id="student-name" placeholder="例：グエン　ヴァン　アン">
+
+  <label for="email"><ruby>結果<rt>けっか</rt></ruby>を<ruby>受<rt>う</rt></ruby>け<ruby>取<rt>と</rt></ruby>るメールアドレス</label>
+  <input type="email" id="email" placeholder="example@gmail.com" autocomplete="email">
+
+  <label for="level">いまの<ruby>日本語<rt>にほんご</rt></ruby>のレベル</label>
+  <select id="level">
+    <option value="初級・初中級">初級・初中級（N5〜N4）</option>
+    <option value="中級" selected>中級（N3）</option>
+    <option value="中上級">中上級（N2）</option>
+    <option value="上級">上級（N1）</option>
+  </select>
+
+  <label for="scene"><ruby>会話<rt>かいわ</rt></ruby>の<ruby>場面<rt>ばめん</rt></ruby></label>
+  <select id="scene">
+    <option value="undergrad">面接（学部）</option>
+    <option value="grad">面接（大学院）</option>
+    <option value="friend">友達（敬語を使わない会話）</option>
+  </select>
+
+  <div class="notes">
+    ・<ruby>静<rt>しず</rt></ruby>かな<ruby>場所<rt>ばしょ</rt></ruby>で<ruby>練習<rt>れんしゅう</rt></ruby>しましょう。<br>
+    ・iPhoneは、マナーモード（<ruby>消音<rt>しょうおん</rt></ruby>）をオフにしてください。<br>
+    ・LINEの<ruby>中<rt>なか</rt></ruby>で<ruby>開<rt>ひら</rt></ruby>かないで、SafariかChromeで<ruby>開<rt>ひら</rt></ruby>いてください。<br>
+    ・マイクの<ruby>許可<rt>きょか</rt></ruby>を<ruby>聞<rt>き</rt></ruby>かれたら、「<ruby>許可<rt>きょか</rt></ruby>」を<ruby>押<rt>お</rt></ruby>してください。
+  </div>
+
+  <button class="btn-main" id="btn-start"><ruby>会話<rt>かいわ</rt></ruby>を<ruby>始<rt>はじ</rt></ruby>める</button>
+</section>
+
+<!-- ===== 2. 会話画面（質問の文字は出しません） ===== -->
+<section class="card screen hidden" id="screen-talk">
+  <div class="scene-label" id="scene-label"></div>
+  <div class="illust" id="illust"></div>
+  <div class="progress" id="progress"></div>
+  <p class="status" id="status"></p>
+  <div class="loader hidden" id="loader"></div>
+  <div class="rec hidden" id="rec"><span class="dot"></span><span id="rec-time">0:00</span></div>
+
+  <button class="btn-main hidden" id="btn-listen">▶ <ruby>聞<rt>き</rt></ruby>く</button>
+  <button class="btn-main hidden" id="btn-answer"><ruby>解答<rt>かいとう</rt></ruby>する</button>
+  <button class="btn-sub hidden" id="btn-repeat">すみません、もう<ruby>一度<rt>いちど</rt></ruby>お<ruby>願<rt>ねが</rt></ruby>いします</button>
+  <button class="btn-main hidden" id="btn-resend">もう<ruby>一度<rt>いちど</rt></ruby><ruby>送<rt>おく</rt></ruby>る</button>
+</section>
+
+<!-- ===== 3. 終了画面 ===== -->
+<section class="card screen hidden center" id="screen-finish">
+  <h1>お<ruby>疲<rt>つか</rt></ruby>れ<ruby>様<rt>さま</rt></ruby>でした。</h1>
+  <p><ruby>結果<rt>けっか</rt></ruby>が<ruby>届<rt>とど</rt></ruby>くまで、<ruby>少々<rt>しょうしょう</rt></ruby>お<ruby>待<rt>ま</rt></ruby>ちください。</p>
+  <div class="loader"></div>
+  <p class="hint">この<ruby>画面<rt>がめん</rt></ruby>を<ruby>閉<rt>と</rt></ruby>じないでください。（1〜2<ruby>分<rt>ふん</rt></ruby>）</p>
+</section>
+
+<section class="card screen hidden center" id="screen-done">
+  <h1 id="done-title"></h1>
+  <p id="done-msg"></p>
+  <button class="btn-main hidden" id="btn-retry-finish">もう<ruby>一度<rt>いちど</rt></ruby><ruby>送<rt>おく</rt></ruby>る</button>
+  <button class="btn-sub" id="btn-again">もう<ruby>一度<rt>いちど</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby>する</button>
+</section>
+
+<script>
+// ============ 設定 ============
+// ★ GASを「ウェブアプリ」でデプロイしたときのURL（…/exec で終わるもの）を、ここに貼ってください
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwQguvZnwPoDiJg9Xk7m-84BHUnBhDhCuWyXH48ej-kiL4WN4zomHPF_unlAJCliq2zyA/exec';
+
+const MAX_TURNS = 6;     // 学生が答える回数（サーバー側の CONFIG.MAX_TURNS と同じにする）
+const MAX_REC_SEC = 60;   // 1回の録音の最大秒数
+
+// ============ イラスト（シルエット） ============
+const ILLUST = {
+  undergrad: `
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="200" fill="#e6edf5"/>
+  <rect y="150" width="320" height="50" fill="#d2dbe5"/>
+  <rect x="232" y="24" width="62" height="74" fill="#fff" stroke="#c0cad6" stroke-width="4"/>
+  <line x1="263" y1="24" x2="263" y2="98" stroke="#c0cad6" stroke-width="4"/>
+  <circle cx="160" cy="60" r="25" fill="#3a4757"/>
+  <path d="M106 140 Q108 94 160 90 Q212 94 214 140 Z" fill="#3a4757"/>
+  <path d="M150 93 L160 122 L170 93 Z" fill="#fff"/>
+  <path d="M157 97 L160 120 L163 97 Z" fill="#7a2e3a"/>
+  <rect x="55" y="128" width="210" height="16" rx="3" fill="#8a6a4f"/>
+  <rect x="66" y="144" width="188" height="44" fill="#a3826a"/>
+  <rect x="118" y="120" width="40" height="9" fill="#fff" transform="rotate(-4 138 124)"/>
+  <rect x="176" y="121" width="26" height="8" fill="#5d6b7a"/>
+</svg>`,
+  grad: `
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="200" fill="#ece8e1"/>
+  <rect y="150" width="320" height="50" fill="#dcd5ca"/>
+  <rect x="14" y="22" width="70" height="110" fill="#8d6e55"/>
+  <rect x="20" y="30" width="58" height="26" fill="#6b5241"/>
+  <rect x="24" y="34" width="8" height="22" fill="#c94f4f"/><rect x="34" y="36" width="7" height="20" fill="#4f7cc9"/><rect x="43" y="33" width="9" height="23" fill="#e0b84a"/><rect x="54" y="37" width="7" height="19" fill="#4fa37a"/>
+  <rect x="20" y="64" width="58" height="26" fill="#6b5241"/>
+  <rect x="24" y="68" width="9" height="22" fill="#4f7cc9"/><rect x="35" y="70" width="7" height="20" fill="#e0b84a"/><rect x="44" y="67" width="8" height="23" fill="#c94f4f"/>
+  <circle cx="130" cy="64" r="22" fill="#3d3a38"/>
+  <path d="M84 140 Q86 98 130 94 Q174 98 176 140 Z" fill="#3d3a38"/>
+  <circle cx="215" cy="62" r="23" fill="#4a4643"/>
+  <path d="M168 140 Q170 96 215 92 Q260 96 262 140 Z" fill="#4a4643"/>
+  <rect x="200" y="58" width="12" height="8" rx="3" fill="none" stroke="#cfcac4" stroke-width="2"/>
+  <rect x="218" y="58" width="12" height="8" rx="3" fill="none" stroke="#cfcac4" stroke-width="2"/>
+  <rect x="70" y="128" width="210" height="16" rx="3" fill="#6f5745"/>
+  <rect x="80" y="144" width="190" height="44" fill="#86695a"/>
+  <rect x="150" y="120" width="44" height="9" fill="#fff" transform="rotate(3 172 124)"/>
+</svg>`,
+  friend: `
+<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="200" fill="#fdf1e3"/>
+  <rect y="150" width="320" height="50" fill="#f2dcc2"/>
+  <circle cx="60" cy="40" r="16" fill="#ffd36b"/>
+  <rect x="236" y="20" width="56" height="40" rx="6" fill="#fff" stroke="#e7c9a6" stroke-width="3"/>
+  <circle cx="160" cy="64" r="25" fill="#e07a3f"/>
+  <path d="M136 60 Q140 30 168 38 Q186 44 184 60 Q170 46 136 60 Z" fill="#b85a26"/>
+  <path d="M108 142 Q110 98 160 94 Q210 98 212 142 Z" fill="#e07a3f"/>
+  <path d="M146 96 Q160 110 174 96" fill="none" stroke="#fdf1e3" stroke-width="4"/>
+  <ellipse cx="160" cy="140" rx="110" ry="14" fill="#c99d6e"/>
+  <rect x="152" y="152" width="16" height="40" fill="#b88a5c"/>
+  <rect x="110" y="118" width="18" height="20" rx="3" fill="#fff"/>
+  <path d="M128 123 q8 0 8 7 q0 7 -8 7" fill="none" stroke="#fff" stroke-width="3"/>
+  <rect x="192" y="118" width="18" height="20" rx="3" fill="#fff"/>
+  <path d="M192 123 q-8 0 -8 7 q0 7 8 7" fill="none" stroke="#fff" stroke-width="3"/>
+</svg>`,
+};
+
+// ============ 状態 ============
+const state = { info: null, history: [], answers: 0, repeatUsed: false, finished: false, lastWav: null };
+let audioCtx = null;   // 再生と録音の両方に使う
+let aiBuffer = null;   // いまの質問の音声
+let rec = null;        // 録音中のデータ
+let recTimer = null;
+
+const $ = id => document.getElementById(id);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('hidden', s.id !== id));
+  window.scrollTo(0, 0);
+}
+function setStatus(t) { $('status').textContent = t; }
+function setLoading(b) { $('loader').classList.toggle('hidden', !b); }
+function setButtons(o) {
+  o = o || {};
+  $('btn-listen').classList.toggle('hidden', !o.listen);
+  $('btn-answer').classList.toggle('hidden', !o.answer);
+  $('btn-repeat').classList.toggle('hidden', !o.repeat);
+  $('btn-resend').classList.toggle('hidden', !o.resend);
+}
+function setAnswerButton(recording) {
+  const b = $('btn-answer');
+  b.innerHTML = recording ? '<ruby>解答<rt>かいとう</rt></ruby><ruby>終了<rt>しゅうりょう</rt></ruby>' : '<ruby>解答<rt>かいとう</rt></ruby>する';
+  b.className = recording ? 'btn-stop' : 'btn-main';
+}
+function updateProgress() {
+  $('progress').innerHTML = Array.from({ length: MAX_TURNS }, (_, i) =>
+    `<span class="${i < state.answers ? 'done' : ''}"></span>`).join('');
+}
+// GASのサーバーを呼ぶ（text/plain で送ると、CORSの事前確認なしで送れます）
+async function run(fn, arg) {
+  const action = { apiTurn: 'turn', finishAndSendResult: 'finish' }[fn];
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, data: arg }),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'サーバーエラー');
+  return json.result;
+}
+function setAudioSession(type) {
+  // iPhone（iOS 17以降）：消音モードでも音が出るようにする
+  try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) {}
+}
+function warnLeave(e) { e.preventDefault(); e.returnValue = ''; }
+
+// ============ 1. 会話を始める ============
+$('btn-start').addEventListener('click', async () => {
+  const info = {
+    className: $('class-name').value.trim(),
+    studentName: $('student-name').value.trim(),
+    email: $('email').value.trim(),
+    level: $('level').value,
+    sceneId: $('scene').value,
+  };
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(GAS_URL)) {
+    alert('index.html の GAS_URL が設定されていません。'); return;
+  }
+  if (!info.className || !info.studentName || !info.email) {
+    alert('クラス、名前、メールアドレスを全部書いてください。'); return;
+  }
+  if (!/^[\u30A0-\u30FF\s\u3000]+$/.test(info.studentName)) {
+    alert('名前は、全角のカタカナで書いてください。'); return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.email)) {
+    alert('メールアドレスが正しくありません。もう一度確認してください。'); return;
+  }
+
+  $('btn-start').disabled = true;
+  try {
+    // ボタンを押したときに音を使えるようにする（iPhone対策）
+    const AC = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AC();
+    audioCtx.resume();
+    // マイクの許可を先にもらう
+    setAudioSession('play-and-record');
+    const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+    s.getTracks().forEach(t => t.stop());
+    setAudioSession('playback');
+  } catch (e) {
+    alert('マイクが使えません。\n・マイクを「許可」してください。\n・LINEなどのアプリの中ではなく、SafariかChromeで開いてください。');
+    $('btn-start').disabled = false;
+    return;
+  }
+
+  state.info = info;
+  state.history = [];
+  state.answers = 0;
+  state.finished = false;
+  aiBuffer = null;
+  $('scene-label').textContent = $('scene').selectedOptions[0].textContent;
+  $('illust').innerHTML = ILLUST[info.sceneId];
+  updateProgress();
+  setAnswerButton(false);
+  showScreen('screen-talk');
+  window.addEventListener('beforeunload', warnLeave);
+  sendTurn(null);
+});
+
+// ============ 2. サーバーに送って、AIの返事をもらう ============
+async function sendTurn(wav) {
+  state.lastWav = wav;
+  setButtons({});
+  setLoading(true);
+  setStatus(wav ? '少し待ってください…' : '準備しています…');
+
+  let res;
+  try {
+    res = await run('apiTurn', {
+      sceneId: state.info.sceneId, level: state.info.level, history: state.history, audio: wav,
+    });
+  } catch (err) {
+    console.error(err);
+    setLoading(false);
+    setStatus('通信がうまくいきませんでした。「もう一度送る」を押してください。');
+    setButtons({ resend: true });
+    return;
+  }
+  setLoading(false);
+
+  if (res.retry) {
+    setStatus(res.message);
+    setButtons({ answer: true, repeat: !state.repeatUsed && !!aiBuffer });
+    return;
+  }
+
+  try {
+    aiBuffer = await decodeMp3(res.audio);
+  } catch (e) {
+    console.error(e);
+    setStatus('音声を読み込めませんでした。「もう一度送る」を押してください。');
+    setButtons({ resend: true });
+    return;
+  }
+
+  if (res.transcript) { state.history.push({ role: 'student', text: res.transcript }); state.answers++; }
+  state.history.push({ role: 'ai', text: res.reply });
+  state.finished = !!res.finished;
+  state.repeatUsed = false;
+  state.lastWav = null;
+  updateProgress();
+  playAi();
+}
+
+$('btn-resend').addEventListener('click', () => sendTurn(state.lastWav));
+
+// ============ 3. AIの音声を再生する ============
+async function playAi() {
+  setButtons({});
+  setStatus('よく聞いてください。');
+  setAudioSession('playback');
+  try { await audioCtx.resume(); } catch (e) {}
+  if (audioCtx.state !== 'running') {
+    // 自動で音が出ないときは、ボタンを押してもらう
+    setStatus('「聞く」を押してください。');
+    setButtons({ listen: true });
+    return;
+  }
+  await playBuffer(aiBuffer);
+
+  if (state.finished) { finish(); return; }
+  setStatus('あなたの番です。「解答する」を押して、話してください。');
+  setButtons({ answer: true, repeat: !state.repeatUsed });
+}
+
+function playBuffer(buf) {
+  return new Promise(resolve => {
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    let done = false;
+    const end = () => { if (!done) { done = true; resolve(); } };
+    src.onended = end;
+    setTimeout(end, (buf.duration + 3) * 1000); // 念のため
+    src.start(0);
+  });
+}
+
+$('btn-listen').addEventListener('click', () => { audioCtx.resume(); playAi(); });
+
+// 「もう一度お願いします」は1つの質問で1回だけ
+$('btn-repeat').addEventListener('click', () => {
+  if (state.repeatUsed || !aiBuffer) return;
+  state.repeatUsed = true;
+  playAi();
+});
+
+// ============ 4. 録音する ============
+$('btn-answer').addEventListener('click', async () => {
+  if (rec) { stopAndSend(); return; }
+  try {
+    await startRec();
+  } catch (e) {
+    console.error(e);
+    alert('録音を始められませんでした。マイクを「許可」してください。');
+    return;
+  }
+  setAnswerButton(true);
+  setButtons({ answer: true });
+  setStatus('録音中です。話し終わったら「解答終了」を押してください。');
+});
+
+async function startRec() {
+  setAudioSession('play-and-record');
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+  });
+  await audioCtx.resume();
+  const source = audioCtx.createMediaStreamSource(stream);
+  const proc = audioCtx.createScriptProcessor(4096, 1, 1);
+  const mute = audioCtx.createGain();
+  mute.gain.value = 0;
+  const chunks = [];
+  proc.onaudioprocess = e => chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));
+  source.connect(proc); proc.connect(mute); mute.connect(audioCtx.destination);
+  rec = { stream, source, proc, mute, chunks, start: Date.now() };
+
+  $('rec').classList.remove('hidden');
+  $('rec-time').textContent = '0:00';
+  recTimer = setInterval(() => {
+    const sec = Math.floor((Date.now() - rec.start) / 1000);
+    $('rec-time').textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+    if (sec >= MAX_REC_SEC) stopAndSend();
+  }, 250);
+}
+
+function stopRec() {
+  clearInterval(recTimer);
+  $('rec').classList.add('hidden');
+  const r = rec;
+  rec = null;
+  try { r.source.disconnect(); r.proc.disconnect(); r.mute.disconnect(); } catch (e) {}
+  r.stream.getTracks().forEach(t => t.stop());
+  setAudioSession('playback');
+  return r.chunks;
+}
+
+function stopAndSend() {
+  if (!rec) return;
+  const chunks = stopRec();
+  setAnswerButton(false);
+  const wav = encodeWav(chunks, audioCtx.sampleRate);
+  if (wav.seconds < 0.8) {
+    setStatus('録音が短すぎました。もう一度「解答する」を押して、話してください。');
+    setButtons({ answer: true, repeat: !state.repeatUsed });
+    return;
+  }
+  sendTurn(wav.base64);
+}
+
+// 録音データ → 16kHz・モノラルのWAV（Base64）
+function encodeWav(chunks, inRate) {
+  const len = chunks.reduce((a, c) => a + c.length, 0);
+  const data = new Float32Array(len);
+  let off = 0;
+  chunks.forEach(c => { data.set(c, off); off += c.length; });
+
+  const outRate = Math.min(16000, inRate);
+  const ratio = inRate / outRate;
+  const outLen = Math.floor(len / ratio);
+  const pcm = new Int16Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    const s = Math.floor(i * ratio), e = Math.max(s + 1, Math.min(len, Math.floor((i + 1) * ratio)));
+    let sum = 0;
+    for (let j = s; j < e; j++) sum += data[j];
+    let v = Math.max(-1, Math.min(1, sum / (e - s)));
+    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+  }
+
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const dv = new DataView(buf);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); dv.setUint32(4, 36 + pcm.length * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, outRate, true); dv.setUint32(28, outRate * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, 'data'); dv.setUint32(40, pcm.length * 2, true);
+  new Int16Array(buf, 44).set(pcm);
+
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return { base64: btoa(bin), seconds: outLen / outRate };
+}
+
+function decodeMp3(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Promise((ok, ng) => {
+    const p = audioCtx.decodeAudioData(bytes.buffer, ok, ng);
+    if (p && p.catch) p.catch(ng);
+  });
+}
+
+// ============ 5. 終わり：結果を送る ============
+function finish() {
+  window.removeEventListener('beforeunload', warnLeave);
+  showScreen('screen-finish');
+  run('finishAndSendResult', Object.assign({}, state.info, { history: state.history }))
+    .then(r => {
+      $('done-title').textContent = '結果を送りました';
+      $('done-msg').textContent = r.mailSent
+        ? 'メールを確認してください。'
+        : '結果は先生に送りました。メールが届かないときは、先生に聞いてください。';
+      $('btn-retry-finish').classList.add('hidden');
+      showScreen('screen-done');
+    })
+    .catch(e => {
+      console.error(e);
+      $('done-title').textContent = '送ることができませんでした';
+      $('done-msg').textContent = '「もう一度送る」を押してください。だめなときは、先生に言ってください。';
+      $('btn-retry-finish').classList.remove('hidden');
+      showScreen('screen-done');
+    });
+}
+$('btn-retry-finish').addEventListener('click', finish);
+
+$('btn-again').addEventListener('click', () => {
+  $('btn-start').disabled = false;
+  showScreen('screen-setup');
+});
+</script>
+</body>
+</html>
