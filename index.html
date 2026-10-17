@@ -181,13 +181,23 @@
         <option value="grad">面接（大学院）</option>
       </select>
     </div>
+
+    <label for="turns"><ruby>質問<rt>しつもん</rt></ruby>の<ruby>数<rt>かず</rt></ruby></label>
+    <div class="select-wrap">
+      <select id="turns">
+        <option value="1">1つ</option>
+        <option value="2">2つ</option>
+        <option value="3">3つ</option>
+        <option value="4">4つ</option>
+        <option value="5" selected>5つ</option>
+      </select>
+    </div>
   </div>
 
   <div class="notes">
     <ul>
       <li><ruby>静<rt>しず</rt></ruby>かな<ruby>場所<rt>ばしょ</rt></ruby>で<ruby>練習<rt>れんしゅう</rt></ruby>しましょう。イヤホンがあると、もっといいです。</li>
       <li>iPhoneは、マナーモード（<ruby>消音<rt>しょうおん</rt></ruby>）をオフにしてください。</li>
-      <li>LINEの<ruby>中<rt>なか</rt></ruby>ではなく、SafariかChromeで<ruby>開<rt>ひら</rt></ruby>いてください。</li>
       <li>マイクの<ruby>許可<rt>きょか</rt></ruby>を<ruby>聞<rt>き</rt></ruby>かれたら、「<ruby>許可<rt>きょか</rt></ruby>」を<ruby>押<rt>お</rt></ruby>してください。</li>
     </ul>
   </div>
@@ -228,6 +238,7 @@
   <h1 id="done-title"></h1>
   <p id="done-msg"></p>
   <button class="btn-main hidden" id="btn-download"><ruby>結果<rt>けっか</rt></ruby>（PDF）をダウンロード</button>
+  <button class="btn-sub hidden" id="btn-audio"><ruby>自分<rt>じぶん</rt></ruby>の<ruby>音声<rt>おんせい</rt></ruby>をダウンロード</button>
   <p class="hint hidden" id="download-hint">iPhoneは「ファイル」アプリに<ruby>保存<rt>ほぞん</rt></ruby>されます。</p>
   <button class="btn-main hidden" id="btn-retry-finish">もう<ruby>一度<rt>いちど</rt></ruby><ruby>送<rt>おく</rt></ruby>る</button>
   <button class="btn-sub" id="btn-again">もう<ruby>一度<rt>いちど</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby>する</button>
@@ -238,7 +249,9 @@
 // ★ GASを「ウェブアプリ」でデプロイしたときのURL（…/exec で終わるもの）を、ここに貼ってください
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwQguvZnwPoDiJg9Xk7m-84BHUnBhDhCuWyXH48ej-kiL4WN4zomHPF_unlAJCliq2zyA/exec';
 
-const MAX_TURNS = 6;      // 学生が答える回数（サーバー側の CONFIG.MAX_TURNS と同じにする）
+// 前後のスペースや改行が入っていても動くようにする
+const SERVER_URL = GAS_URL.trim();
+
 const MAX_REC_SEC = 60;   // 1回の録音の最大秒数
 
 // ============ イラスト（シルエット） ============
@@ -280,7 +293,7 @@ const ILLUST = {
 };
 
 // ============ 状態 ============
-const state = { info: null, history: [], answers: 0, repeatUsed: false, finished: false, lastWav: null, result: null, downloaded: false };
+const state = { info: null, history: [], audios: [], answers: 0, repeatUsed: false, finished: false, lastWav: null, result: null, downloaded: false };
 let audioCtx = null;   // 再生と録音の両方に使う
 let aiBuffer = null;   // いまの質問の音声
 let rec = null;        // 録音中のデータ
@@ -307,13 +320,13 @@ function setAnswerButton(recording) {
   b.className = recording ? 'btn-stop' : 'btn-main';
 }
 function updateProgress() {
-  $('progress').innerHTML = Array.from({ length: MAX_TURNS }, (_, i) =>
+  $('progress').innerHTML = Array.from({ length: state.info.turns }, (_, i) =>
     `<span class="${i < state.answers ? 'done' : ''}"></span>`).join('');
 }
 
 // GASのサーバーを呼ぶ（text/plain で送ると、CORSの事前確認なしで送れます）
 async function call(action, data, password) {
-  const res = await fetch(GAS_URL, {
+  const res = await fetch(SERVER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action: action, password: password, data: data }),
@@ -351,9 +364,13 @@ $('btn-start').addEventListener('click', async () => {
     password: $('password').value.trim(),
     level: $('level').value,
     sceneId: $('scene').value,
+    turns: Number($('turns').value),
   };
-  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(GAS_URL)) {
-    alert('index.html の GAS_URL が設定されていません。'); return;
+  if (!SERVER_URL.startsWith('https://script.google.com/')) {
+    alert('index.html の GAS_URL が正しくありません。\n今の値：' + (SERVER_URL || '（空）')); return;
+  }
+  if (SERVER_URL.endsWith('/dev')) {
+    alert('GAS_URL が「/dev」で終わっています。「デプロイを管理」に出ている「/exec」で終わるURLを使ってください。'); return;
   }
   if (!info.className || !info.studentName || !info.password) {
     alert('クラス、名前、パスワードを全部書いてください。'); return;
@@ -402,6 +419,7 @@ $('btn-start').addEventListener('click', async () => {
 
   state.info = info;
   state.history = [];
+  state.audios = [];
   state.answers = 0;
   state.finished = false;
   state.result = null;
@@ -426,7 +444,8 @@ async function sendTurn(wav) {
   let res;
   try {
     res = await run('turn', {
-      sceneId: state.info.sceneId, level: state.info.level, history: state.history, audio: wav,
+      sceneId: state.info.sceneId, level: state.info.level, turns: state.info.turns,
+      history: state.history, audio: wav,
     });
   } catch (err) {
     console.error(err);
@@ -454,7 +473,11 @@ async function sendTurn(wav) {
     return;
   }
 
-  if (res.transcript) { state.history.push({ role: 'student', text: res.transcript }); state.answers++; }
+  if (res.transcript) {
+    state.history.push({ role: 'student', text: res.transcript });
+    state.audios.push(state.lastWav); // 答えの声は、発音の評価とダウンロードのためにとっておく
+    state.answers++;
+  }
   state.history.push({ role: 'ai', text: res.reply });
   state.finished = !!res.finished;
   state.repeatUsed = false;
@@ -624,6 +647,7 @@ function finish() {
   const data = {
     className: state.info.className, studentName: state.info.studentName,
     level: state.info.level, sceneId: state.info.sceneId, history: state.history,
+    audios: state.audios,
   };
   run('finish', data)
     .then(r => {
@@ -631,6 +655,7 @@ function finish() {
       $('done-title').textContent = 'お疲れ様でした';
       $('done-msg').innerHTML = '<ruby>結果<rt>けっか</rt></ruby>ができました。<br>ダウンロードしてから、<ruby>画面<rt>がめん</rt></ruby>を<ruby>閉<rt>と</rt></ruby>じてください。';
       $('btn-download').classList.remove('hidden');
+      $('btn-audio').classList.toggle('hidden', !state.audios.length);
       $('download-hint').classList.remove('hidden');
       $('btn-retry-finish').classList.add('hidden');
       showScreen('screen-done');
@@ -640,6 +665,7 @@ function finish() {
       $('done-title').textContent = '結果を作れませんでした';
       $('done-msg').textContent = '「もう一度送る」を押してください。だめなときは、先生に言ってください。';
       $('btn-download').classList.add('hidden');
+      $('btn-audio').classList.add('hidden');
       $('download-hint').classList.add('hidden');
       $('btn-retry-finish').classList.remove('hidden');
       showScreen('screen-done');
@@ -647,17 +673,41 @@ function finish() {
 }
 $('btn-retry-finish').addEventListener('click', finish);
 
-$('btn-download').addEventListener('click', () => {
-  if (!state.result) return;
-  const blob = new Blob([base64ToBytes(state.result.pdfBase64)], { type: 'application/pdf' });
+function saveBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = state.result.fileName + '.pdf';
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// 自分の答えの声を、1つのWAVファイルにまとめる（答えと答えの間に1秒の無音を入れる）
+function joinWavs(list) {
+  const pcms = list.map(b64 => base64ToBytes(b64).subarray(44));
+  const rate = new DataView(base64ToBytes(list[0]).buffer).getUint32(24, true);
+  const gap = rate * 2; // 1秒分の無音（16bit＝2バイト）
+  const dataLen = pcms.reduce((n, p) => n + p.length, 0) + gap * (pcms.length - 1);
+  const out = new Uint8Array(44 + dataLen);
+  out.set(base64ToBytes(list[0]).subarray(0, 44), 0);
+  const dv = new DataView(out.buffer);
+  dv.setUint32(4, 36 + dataLen, true);
+  dv.setUint32(40, dataLen, true);
+  let off = 44;
+  pcms.forEach((p, i) => { out.set(p, off); off += p.length + (i < pcms.length - 1 ? gap : 0); });
+  return new Blob([out], { type: 'audio/wav' });
+}
+
+$('btn-audio').addEventListener('click', () => {
+  if (!state.result || !state.audios.length) return;
+  saveBlob(joinWavs(state.audios), state.result.fileName + '_音声.wav');
+});
+
+$('btn-download').addEventListener('click', () => {
+  if (!state.result) return;
+  saveBlob(new Blob([base64ToBytes(state.result.pdfBase64)], { type: 'application/pdf' }), state.result.fileName + '.pdf');
   state.downloaded = true;
   window.removeEventListener('beforeunload', warnLeave);
 });
