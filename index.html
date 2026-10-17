@@ -119,6 +119,18 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .center { text-align: center; }
+    .dl-title { font-size: .9rem; color: var(--muted); margin: 18px 0 0; }
+    .btn-dl {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(85, 116, 99, .25);
+    }
+    .btn-dl:hover:not(:disabled) { background: var(--accent-dark); }
+    .btn-dl + .btn-dl { margin-top: 10px; }
+    .dl-sub { font-size: .78rem; font-weight: 500; opacity: .85; letter-spacing: 0; }
+    .btn-link {
+      background: none; color: var(--accent-dark); font-size: .85rem; font-weight: 500;
+      text-decoration: underline; padding: 8px; margin-top: 8px; letter-spacing: 0;
+    }
     .center h1 { font-size: 1.35rem; margin: 6px 0 8px; }
     .hint { font-size: .82rem; color: var(--muted); }
     .done-icon {
@@ -237,9 +249,19 @@
   </div>
   <h1 id="done-title"></h1>
   <p id="done-msg"></p>
-  <button class="btn-main hidden" id="btn-download"><ruby>結果<rt>けっか</rt></ruby>（PDF）をダウンロード</button>
-  <button class="btn-sub hidden" id="btn-audio"><ruby>自分<rt>じぶん</rt></ruby>の<ruby>音声<rt>おんせい</rt></ruby>をダウンロード</button>
-  <p class="hint hidden" id="download-hint">iPhoneは「ファイル」アプリに<ruby>保存<rt>ほぞん</rt></ruby>されます。</p>
+  <div class="hidden" id="download-area">
+    <p class="dl-title">ダウンロードするものを<ruby>選<rt>えら</rt></ruby>んでください</p>
+    <button class="btn-dl" id="btn-dl-pdf">
+      <span class="dl-main"><ruby>結果<rt>けっか</rt></ruby>（<ruby>成績<rt>せいせき</rt></ruby>のみ）</span>
+      <span class="dl-sub">PDF</span>
+    </button>
+    <button class="btn-dl" id="btn-dl-both">
+      <span class="dl-main"><ruby>結果<rt>けっか</rt></ruby>（<ruby>成績<rt>せいせき</rt></ruby>＋<ruby>音声<rt>おんせい</rt></ruby>）</span>
+      <span class="dl-sub">PDF ＋ <ruby>自分<rt>じぶん</rt></ruby>の<ruby>声<rt>こえ</rt></ruby>（WAV）</span>
+    </button>
+    <button class="btn-link hidden" id="btn-audio-again"><ruby>音声<rt>おんせい</rt></ruby>がダウンロードされなかったときは、ここを<ruby>押<rt>お</rt></ruby>してください</button>
+    <p class="hint">iPhoneは「ファイル」アプリに<ruby>保存<rt>ほぞん</rt></ruby>されます。</p>
+  </div>
   <button class="btn-main hidden" id="btn-retry-finish">もう<ruby>一度<rt>いちど</rt></ruby><ruby>送<rt>おく</rt></ruby>る</button>
   <button class="btn-sub" id="btn-again">もう<ruby>一度<rt>いちど</rt></ruby><ruby>練習<rt>れんしゅう</rt></ruby>する</button>
 </section>
@@ -654,9 +676,9 @@ function finish() {
       state.result = r;
       $('done-title').textContent = 'お疲れ様でした';
       $('done-msg').innerHTML = '<ruby>結果<rt>けっか</rt></ruby>ができました。<br>ダウンロードしてから、<ruby>画面<rt>がめん</rt></ruby>を<ruby>閉<rt>と</rt></ruby>じてください。';
-      $('btn-download').classList.remove('hidden');
-      $('btn-audio').classList.toggle('hidden', !state.audios.length);
-      $('download-hint').classList.remove('hidden');
+      $('download-area').classList.remove('hidden');
+      $('btn-dl-both').classList.toggle('hidden', !state.audios.length);
+      $('btn-audio-again').classList.add('hidden');
       $('btn-retry-finish').classList.add('hidden');
       showScreen('screen-done');
     })
@@ -664,9 +686,7 @@ function finish() {
       console.error(e);
       $('done-title').textContent = '結果を作れませんでした';
       $('done-msg').textContent = '「もう一度送る」を押してください。だめなときは、先生に言ってください。';
-      $('btn-download').classList.add('hidden');
-      $('btn-audio').classList.add('hidden');
-      $('download-hint').classList.add('hidden');
+      $('download-area').classList.add('hidden');
       $('btn-retry-finish').classList.remove('hidden');
       showScreen('screen-done');
     });
@@ -700,16 +720,34 @@ function joinWavs(list) {
   return new Blob([out], { type: 'audio/wav' });
 }
 
-$('btn-audio').addEventListener('click', () => {
-  if (!state.result || !state.audios.length) return;
-  saveBlob(joinWavs(state.audios), state.result.fileName + '_音声.wav');
-});
-
-$('btn-download').addEventListener('click', () => {
-  if (!state.result) return;
+function downloadPdf() {
   saveBlob(new Blob([base64ToBytes(state.result.pdfBase64)], { type: 'application/pdf' }), state.result.fileName + '.pdf');
   state.downloaded = true;
   window.removeEventListener('beforeunload', warnLeave);
+}
+function downloadAudio() {
+  saveBlob(joinWavs(state.audios), state.result.fileName + '_音声.wav');
+}
+
+// 結果（成績のみ）
+$('btn-dl-pdf').addEventListener('click', () => {
+  if (!state.result) return;
+  downloadPdf();
+});
+
+// 結果（成績＋音声）：PDFのあと、少し間をあけて音声をダウンロードする
+$('btn-dl-both').addEventListener('click', () => {
+  if (!state.result || !state.audios.length) return;
+  downloadPdf();
+  setTimeout(() => {
+    downloadAudio();
+    // スマホによっては2つ目のダウンロードが止められるので、もう一度押せるボタンを出す
+    $('btn-audio-again').classList.remove('hidden');
+  }, 1500);
+});
+
+$('btn-audio-again').addEventListener('click', () => {
+  if (state.result && state.audios.length) downloadAudio();
 });
 
 $('btn-again').addEventListener('click', () => {
