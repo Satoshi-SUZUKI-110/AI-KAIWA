@@ -315,7 +315,7 @@ const ILLUST = {
 };
 
 // ============ 状態 ============
-const state = { info: null, history: [], audios: [], answers: 0, repeatUsed: false, finished: false, lastWav: null, result: null, downloaded: false };
+const state = { info: null, history: [], audios: [], answers: 0, badCount: 0, endedEarly: false, repeatUsed: false, finished: false, lastWav: null, result: null, downloaded: false };
 let audioCtx = null;   // 再生と録音の両方に使う
 let aiBuffer = null;   // いまの質問の音声
 let rec = null;        // 録音中のデータ
@@ -443,6 +443,8 @@ $('btn-start').addEventListener('click', async () => {
   state.history = [];
   state.audios = [];
   state.answers = 0;
+  state.badCount = 0;
+  state.endedEarly = false;
   state.finished = false;
   state.result = null;
   state.downloaded = false;
@@ -466,7 +468,7 @@ async function sendTurn(wav) {
   let res;
   try {
     res = await run('turn', {
-      sceneId: state.info.sceneId, level: state.info.level, turns: state.info.turns,
+      sceneId: state.info.sceneId, level: state.info.level, turns: state.info.turns, badCount: state.badCount,
       history: state.history, audio: wav,
     });
   } catch (err) {
@@ -500,8 +502,10 @@ async function sendTurn(wav) {
     state.audios.push(state.lastWav); // 答えの声は、発音の評価とダウンロードのためにとっておく
     state.answers++;
   }
+  if (res.inappropriate) state.badCount++;
   state.history.push({ role: 'ai', text: res.reply });
   state.finished = !!res.finished;
+  state.endedEarly = !!res.endedEarly;
   state.repeatUsed = false;
   state.lastWav = null;
   updateProgress();
@@ -670,6 +674,7 @@ function finish() {
     className: state.info.className, studentName: state.info.studentName,
     level: state.info.level, sceneId: state.info.sceneId, history: state.history,
     audios: state.audios,
+    endedEarly: state.endedEarly,
   };
   run('finish', data)
     .then(r => {
